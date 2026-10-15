@@ -18,6 +18,7 @@ from app.db import (
     get_board_data,
     initialize_database,
     move_card,
+    parse_prefixed_id as db_parse_prefixed_id,
     rename_column,
 )
 
@@ -61,13 +62,10 @@ class AiChatPayload(BaseModel):
 
 
 def parse_prefixed_id(prefix: str, value: str) -> int:
-    expected = f"{prefix}-"
-    if not value.startswith(expected):
-        raise HTTPException(status_code=400, detail=f"Invalid {prefix} id")
-    numeric = value[len(expected) :]
-    if not numeric.isdigit():
-        raise HTTPException(status_code=400, detail=f"Invalid {prefix} id")
-    return int(numeric)
+    try:
+        return db_parse_prefixed_id(prefix, value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 def get_authenticated_username(request: Request) -> str | None:

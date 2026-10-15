@@ -385,7 +385,7 @@ def move_card(
         connection.commit()
 
 
-def _parse_prefixed_id(prefix: str, value: str) -> int:
+def parse_prefixed_id(prefix: str, value: str) -> int:
     expected = f"{prefix}-"
     if not value.startswith(expected):
         raise ValueError(f"Invalid {prefix} id")
@@ -404,7 +404,7 @@ def apply_board_update_operations(username: str, operations: list[dict]) -> None
         for operation in operations:
             action = operation.get("action")
             if action == "rename_column":
-                column_id = _parse_prefixed_id("col", str(operation["column_id"]))
+                column_id = parse_prefixed_id("col", str(operation["column_id"]))
                 title = str(operation.get("title", "")).strip()
                 if not title:
                     raise ValueError("rename_column requires non-empty title")
@@ -419,7 +419,7 @@ def apply_board_update_operations(username: str, operations: list[dict]) -> None
                 if result.rowcount == 0:
                     raise ValueError("Column not found")
             elif action == "add_card":
-                column_id = _parse_prefixed_id("col", str(operation["column_id"]))
+                column_id = parse_prefixed_id("col", str(operation["column_id"]))
                 title = str(operation.get("title", "")).strip()
                 details = str(operation.get("details", "")).strip()
                 if not title:
@@ -442,7 +442,7 @@ def apply_board_update_operations(username: str, operations: list[dict]) -> None
                     (board_id, column_id, title, details, int(next_position)),
                 )
             elif action == "delete_card":
-                card_id = _parse_prefixed_id("card", str(operation["card_id"]))
+                card_id = parse_prefixed_id("card", str(operation["card_id"]))
                 row = connection.execute(
                     "SELECT id, column_id FROM cards WHERE id = ? AND board_id = ?",
                     (card_id, board_id),
@@ -452,13 +452,13 @@ def apply_board_update_operations(username: str, operations: list[dict]) -> None
                 connection.execute("DELETE FROM cards WHERE id = ?", (card_id,))
                 _reindex_column(connection, int(row["column_id"]))
             elif action == "move_card":
-                card_id = _parse_prefixed_id("card", str(operation["card_id"]))
-                target_column_id = _parse_prefixed_id(
+                card_id = parse_prefixed_id("card", str(operation["card_id"]))
+                target_column_id = parse_prefixed_id(
                     "col", str(operation["target_column_id"])
                 )
                 over_card_value = operation.get("over_card_id")
                 over_card_id = (
-                    _parse_prefixed_id("card", str(over_card_value))
+                    parse_prefixed_id("card", str(over_card_value))
                     if over_card_value
                     else None
                 )

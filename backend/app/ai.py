@@ -39,7 +39,7 @@ def run_ai_chat_prompt(prompt: str) -> str:
     client = Anthropic(api_key=api_key)
     response = client.messages.create(
         model=MODEL_ID,
-        max_tokens=900,
+        max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
     text = _extract_text(response.content)

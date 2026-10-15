@@ -17,7 +17,7 @@ A Project Management MVP: a Kanban board web app with an AI chat sidebar. FastAP
 ```
 
 ```bash
-# Mac / Linux
+# Mac (Linux: start-linux.sh / stop-linux.sh)
 ./scripts/start-mac.sh
 ./scripts/stop-mac.sh
 ```
@@ -60,7 +60,8 @@ Dockerfile
   └─ stage 1: builds Next.js → out/
   └─ stage 2: Python 3.12 + uv, copies out/ → backend/static/
 
-docker-compose.yml   → single service "pm-app" on port 8000, reads .env
+docker-compose.yml   → service "app" (container "pm-app") on port 8000, reads .env;
+                       named volume "pm-data" persists backend/data/ across rebuilds
 
 backend/
   app/
@@ -93,15 +94,15 @@ frontend/
 2. Unauthenticated: redirect to `/login` (inline HTML served by FastAPI).
 3. Authenticated: `FileResponse(backend/static/index.html)` — the Next.js SPA.
 4. SPA calls `/api/*` endpoints; FastAPI enforces auth on every API route via `require_api_user`.
-5. AI chat: `POST /api/ai/chat` sends board JSON + history to Anthropic, parses structured response, applies any board mutations transactionally, returns updated board.
+5. AI chat: `POST /api/ai/chat` sends board JSON + history to Anthropic, parses structured response, applies any board mutations transactionally via `db.apply_board_update_operations`, returns updated board.
 
 ### ID format
 
-Cards and columns use prefixed string IDs in the API (`card-{n}`, `col-{n}`). `parse_prefixed_id` in `main.py` strips the prefix to get the SQLite integer PK.
+Cards and columns use prefixed string IDs in the API (`card-{n}`, `col-{n}`). `parse_prefixed_id` in `db.py` strips the prefix to get the SQLite integer PK; `main.py` wraps it to raise HTTP 400 on bad IDs.
 
 ### AI model
 
-Pinned to `claude-haiku-4-5-20251001` (fast, cheap). Do not change without updating both `ai.py` and `ai_structured.py`.
+Pinned to `claude-haiku-4-5-20251001` (fast, cheap). `MODEL_ID` lives in `ai.py`, but the same string is also hardcoded in the `/api/ai/ping` and `/api/ai/chat` responses in `main.py`; update all three if changing it.
 
 ## Key constraints
 
@@ -110,6 +111,9 @@ Pinned to `claude-haiku-4-5-20251001` (fast, cheap). Do not change without updat
 - SQLite DB auto-initializes on startup (`initialize_database()` called at module level in `main.py`).
 - Frontend E2E tests hit the live app at `:8000`, so the backend must be running first.
 - `ANTHROPIC_API_KEY` must be in a `.env` file at the project root for AI features to work.
+- Backend tests never call Anthropic or touch `data/pm.db`: they set `PM_DB_PATH` to a `tmp_path` file and monkeypatch `run_ai_ping` / `run_ai_chat_prompt` on the `app.main` module. Follow the same pattern in new tests.
+- The per-directory `AGENTS.md` files (`backend/`, `frontend/`) are partly stale from earlier phases; trust the code over them.
+- Requirements and phase plan: root `AGENTS.md` and `docs/PLAN.md`.
 
 ## Style rules (from AGENTS.md)
 
@@ -117,3 +121,4 @@ Pinned to `claude-haiku-4-5-20251001` (fast, cheap). Do not change without updat
 - No emojis anywhere.
 - Identify root cause before attempting a fix; prove with evidence.
 - Keep READMEs and docs minimal.
+- Colors: accent yellow `#ecad0a`, primary blue `#209dd7`, purple secondary `#753991` (submit/important buttons), dark navy `#032147` (headings), gray `#888888` (supporting text).
