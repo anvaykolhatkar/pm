@@ -1,9 +1,5 @@
-import sys
-from pathlib import Path
-
+import pytest
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import app.main as main_module
 from app.main import SESSIONS, app
@@ -11,9 +7,13 @@ from app.main import SESSIONS, app
 client = TestClient(app)
 
 
-def login() -> None:
+@pytest.fixture(autouse=True)
+def reset_sessions() -> None:
     SESSIONS.clear()
     client.cookies.clear()
+
+
+def login() -> None:
     response = client.post(
         "/api/login",
         json={"username": "user", "password": "password"},
@@ -22,8 +22,6 @@ def login() -> None:
 
 
 def test_ai_ping_requires_auth() -> None:
-    SESSIONS.clear()
-    client.cookies.clear()
     response = client.post("/api/ai/ping", json={"prompt": "2+2"})
     assert response.status_code == 401
 

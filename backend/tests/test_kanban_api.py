@@ -1,9 +1,7 @@
-import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.db import initialize_database
 from app.main import SESSIONS, app
@@ -11,12 +9,16 @@ from app.main import SESSIONS, app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def reset_sessions() -> None:
+    SESSIONS.clear()
+    client.cookies.clear()
+
+
 def setup_db(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "kanban-test.db"
     monkeypatch.setenv("PM_DB_PATH", str(db_path))
     initialize_database(db_path)
-    SESSIONS.clear()
-    client.cookies.clear()
 
 
 def login() -> None:
@@ -28,8 +30,6 @@ def login() -> None:
 
 
 def test_board_requires_auth() -> None:
-    SESSIONS.clear()
-    client.cookies.clear()
     response = client.get("/api/board")
     assert response.status_code == 401
 

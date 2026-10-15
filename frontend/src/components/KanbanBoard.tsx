@@ -146,8 +146,15 @@ export const KanbanBoard = () => {
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
 
   const handleLogout = async () => {
-    await fetch("/api/logout", { method: "POST" });
-    window.location.href = "/login";
+    try {
+      const response = await fetch("/api/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      window.location.href = "/login";
+    } catch {
+      setError("Could not log out.");
+    }
   };
 
   const handleSendChat = async () => {
@@ -161,11 +168,11 @@ export const KanbanBoard = () => {
       { role: "user", content: question },
     ];
     setChatMessages(nextMessages);
-    setChatInput("");
     setChatLoading(true);
 
     try {
       const result = await chatWithAi(question, chatMessages);
+      setChatInput("");
       setChatMessages((prev) => [
         ...prev,
         { role: "assistant", content: result.response },

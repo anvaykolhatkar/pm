@@ -1,24 +1,24 @@
-import sys
-from pathlib import Path
-
+import pytest
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import SESSIONS, app
 
 client = TestClient(app)
 
 
-def test_root_requires_auth() -> None:
+@pytest.fixture(autouse=True)
+def reset_sessions() -> None:
     SESSIONS.clear()
+    client.cookies.clear()
+
+
+def test_root_requires_auth() -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert "Sign in" in response.text
 
 
 def test_login_accepts_valid_credentials() -> None:
-    SESSIONS.clear()
     response = client.post(
         "/api/login",
         json={"username": "user", "password": "password"},
@@ -29,7 +29,6 @@ def test_login_accepts_valid_credentials() -> None:
 
 
 def test_login_rejects_invalid_credentials() -> None:
-    SESSIONS.clear()
     response = client.post(
         "/api/login",
         json={"username": "user", "password": "wrong-password"},
@@ -44,7 +43,6 @@ def test_health_route() -> None:
 
 
 def test_logout_invalidates_session() -> None:
-    SESSIONS.clear()
     login_response = client.post(
         "/api/login",
         json={"username": "user", "password": "password"},

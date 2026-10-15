@@ -1,9 +1,4 @@
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.ai_structured import parse_structured_ai_response
 

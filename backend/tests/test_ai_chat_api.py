@@ -1,10 +1,8 @@
 import json
-import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import app.main as main_module
 from app.db import initialize_database
@@ -13,12 +11,16 @@ from app.main import SESSIONS, app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def reset_sessions() -> None:
+    SESSIONS.clear()
+    client.cookies.clear()
+
+
 def setup_db(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "ai-chat.db"
     monkeypatch.setenv("PM_DB_PATH", str(db_path))
     initialize_database(db_path)
-    SESSIONS.clear()
-    client.cookies.clear()
 
 
 def login() -> None:
@@ -55,6 +57,7 @@ def test_ai_chat_without_board_update(tmp_path: Path, monkeypatch) -> None:
 def test_ai_chat_with_board_update(tmp_path: Path, monkeypatch) -> None:
     setup_db(tmp_path, monkeypatch)
     login()
+    first_column = client.get("/api/board").json()["columns"][0]["id"]
 
     monkeypatch.setattr(
         main_module,
@@ -65,7 +68,7 @@ def test_ai_chat_with_board_update(tmp_path: Path, monkeypatch) -> None:
                 "board_update": [
                     {
                         "action": "rename_column",
-                        "column_id": "col-1",
+                        "column_id": first_column,
                         "title": "Ideas",
                     }
                 ],
