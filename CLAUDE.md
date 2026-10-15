@@ -42,8 +42,9 @@ Run from `frontend/`:
 npm install
 npm run dev          # dev server (port 3000, standalone frontend only)
 npm run build        # static export → out/
+npm run build:static # build and replace backend/static/ (needed before non-Docker e2e)
 npm run test:unit    # vitest unit tests
-npm run test:e2e     # playwright e2e (requires app running at :8000)
+npm run test:e2e     # playwright e2e (requires app running at :8000 with a fresh build:static)
 npm run lint         # eslint
 ```
 
@@ -67,7 +68,7 @@ backend/
   app/
     main.py          → FastAPI app, all routes, session auth (in-memory SESSIONS dict)
     db.py            → SQLite init + all DB operations (get_board_data, add_card, move_card, …)
-    ai.py            → Anthropic client wrapper (run_ai_ping, run_ai_chat_prompt)
+    ai.py            → Anthropic client wrapper (run_ai_ping, run_ai_chat)
     ai_structured.py → structured response model, prompt builder, parser
   static/            → built Next.js output served by FastAPI at /
   data/pm.db         → SQLite file (auto-created; override with PM_DB_PATH env var)
@@ -111,7 +112,7 @@ Pinned to `claude-haiku-4-5-20251001` (fast, cheap). `MODEL_ID` lives in `ai.py`
 - SQLite DB auto-initializes on startup (`initialize_database()` called at module level in `main.py`).
 - Frontend E2E tests hit the live app at `:8000`, so the backend must be running first.
 - `ANTHROPIC_API_KEY` must be in a `.env` file at the project root for AI features to work.
-- Backend tests never call Anthropic or touch `data/pm.db`: they set `PM_DB_PATH` to a `tmp_path` file and monkeypatch `run_ai_ping` / `run_ai_chat_prompt` on the `app.main` module. Follow the same pattern in new tests.
+- Backend tests never call Anthropic or touch `data/pm.db`: they set `PM_DB_PATH` to a `tmp_path` file and monkeypatch `run_ai_ping` / `run_ai_chat` on the `app.main` module. Follow the same pattern in new tests.
 - The per-directory `AGENTS.md` files (`backend/`, `frontend/`) are partly stale from earlier phases; trust the code over them.
 - Requirements and phase plan: root `AGENTS.md` and `docs/PLAN.md`.
 

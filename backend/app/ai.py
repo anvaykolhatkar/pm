@@ -26,11 +26,12 @@ def _extract_text(content) -> str:
     return "".join(text_chunks).strip()
 
 
-def _run_prompt(prompt: str, max_tokens: int) -> str:
+def _run_messages(messages: list[dict], max_tokens: int, **kwargs) -> str:
     response = _get_client().messages.create(
         model=MODEL_ID,
         max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
+        messages=messages,
+        **kwargs,
     )
     text = _extract_text(response.content)
     if not text:
@@ -39,8 +40,8 @@ def _run_prompt(prompt: str, max_tokens: int) -> str:
 
 
 def run_ai_ping(prompt: str) -> str:
-    return _run_prompt(prompt, max_tokens=128)
+    return _run_messages([{"role": "user", "content": prompt}], max_tokens=128)
 
 
-def run_ai_chat_prompt(prompt: str) -> str:
-    return _run_prompt(prompt, max_tokens=2048)
+def run_ai_chat(system: str, messages: list[dict]) -> str:
+    return _run_messages(messages, max_tokens=2048, system=system)

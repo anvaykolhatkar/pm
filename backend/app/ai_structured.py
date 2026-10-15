@@ -44,8 +44,9 @@ def build_structured_chat_prompt(
     board_data: dict,
     question: str,
     history: list[ChatHistoryMessage],
-) -> str:
-    history_payload = [message.model_dump() for message in history]
+) -> tuple[str, list[dict]]:
+    """Return (system prompt, messages). Prior assistant turns are re-wrapped in
+    the JSON envelope so the model keeps answering in the same format."""
     schema_example = {
         "response": "Text shown to the user.",
         "board_update": [
@@ -56,7 +57,7 @@ def build_structured_chat_prompt(
             }
         ],
     }
-    return (
+    system = (
         "You are an assistant helping with a kanban board.\n"
         "Respond with ONLY valid JSON.\n"
         "Schema:\n"
@@ -67,10 +68,21 @@ def build_structured_chat_prompt(
         "- For operations, use only actions: rename_column, add_card, move_card, delete_card.\n"
         "- Use exact IDs from board data.\n"
         "- Do not include markdown fences.\n\n"
-        f"Conversation history JSON:\n{json.dumps(history_payload, indent=2)}\n\n"
-        f"Current board JSON:\n{json.dumps(board_data, indent=2)}\n\n"
-        f"User question:\n{question}"
+        f"Current board JSON:\n{json.dumps(board_data, indent=2)}"
     )
+    messages = [
+        {
+            "role": message.role,
+            "content": (
+                json.dumps({"response": message.content, "board_update": None})
+                if message.role == "assistant"
+                else message.content
+            ),
+        }
+        for message in history
+    ]
+    messages.append({"role": "user", "content": question})
+    return system, messages
 
 
 def parse_structured_ai_response(raw_text: str) -> StructuredAiResponse:

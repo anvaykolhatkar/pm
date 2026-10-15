@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:static": "next build && node -e \"const fs=require('fs');fs.rmSync('../backend/static',{recursive:true,force:true});fs.cpSync('out','../backend/static',{recursive:true})\"",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

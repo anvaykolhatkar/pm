@@ -13,7 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
-import type { BoardData } from "@/lib/kanban";
+import { moveCard as moveCardLocally, type BoardData } from "@/lib/kanban";
 import {
   addCard,
   chatWithAi,
@@ -32,12 +32,14 @@ export const KanbanBoard = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [moveInFlight, setMoveInFlight] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
     })
   );
+  const noSensors = useSensors();
 
   const cardsById = useMemo(() => board?.cards ?? {}, [board?.cards]);
 
@@ -96,11 +98,21 @@ export const KanbanBoard = () => {
 
     const overCardId = overId.startsWith("card-") ? overId : null;
 
+    const previous = board;
+    setBoard({
+      ...board,
+      columns: moveCardLocally(board.columns, activeCardId, overId),
+    });
+    setMoveInFlight(true);
+
     try {
       await moveCard(activeCardId, targetColumnId, overCardId);
       await loadBoard();
     } catch {
+      setBoard(previous);
       setError("Could not move card.");
+    } finally {
+      setMoveInFlight(false);
     }
   };
 
@@ -259,7 +271,7 @@ export const KanbanBoard = () => {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,4fr)_360px]">
           <DndContext
-            sensors={sensors}
+            sensors={moveInFlight ? noSensors : sensors}
             collisionDetection={closestCorners}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}

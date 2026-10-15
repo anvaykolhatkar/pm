@@ -37,8 +37,8 @@ def test_ai_chat_without_board_update(tmp_path: Path, monkeypatch) -> None:
 
     monkeypatch.setattr(
         main_module,
-        "run_ai_chat_prompt",
-        lambda _prompt: json.dumps({"response": "No changes", "board_update": None}),
+        "run_ai_chat",
+        lambda _system, _messages: json.dumps({"response": "No changes", "board_update": None}),
     )
     response = client.post(
         "/api/ai/chat",
@@ -61,8 +61,8 @@ def test_ai_chat_with_board_update(tmp_path: Path, monkeypatch) -> None:
 
     monkeypatch.setattr(
         main_module,
-        "run_ai_chat_prompt",
-        lambda _prompt: json.dumps(
+        "run_ai_chat",
+        lambda _system, _messages: json.dumps(
             {
                 "response": "Renamed backlog to Ideas.",
                 "board_update": [

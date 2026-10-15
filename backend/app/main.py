@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.ai import run_ai_chat_prompt, run_ai_ping
+from app.ai import run_ai_chat, run_ai_ping
 from app.ai_structured import (
     ChatHistoryMessage,
     build_structured_chat_prompt,
@@ -336,10 +336,12 @@ def ai_ping(payload: AiPingPayload, request: Request) -> dict[str, str]:
 def ai_chat(payload: AiChatPayload, request: Request) -> dict:
     username = require_api_user(request)
     board_data = get_board_data(username)
-    prompt = build_structured_chat_prompt(board_data, payload.question, payload.history)
+    system, messages = build_structured_chat_prompt(
+        board_data, payload.question, payload.history
+    )
 
     try:
-        raw_response = run_ai_chat_prompt(prompt)
+        raw_response = run_ai_chat(system, messages)
         structured = parse_structured_ai_response(raw_response)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
